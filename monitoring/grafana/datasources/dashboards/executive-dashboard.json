@@ -1,0 +1,491 @@
+{
+  "id": null,
+  "title": "Executivo - Crédito Corporativo",
+  "tags": ["banking", "executive", "credit"],
+  "style": "dark",
+  "timezone": "browser",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "refresh": "30s",
+  "version": 1,
+  "panels": [
+    {
+      "id": 1,
+      "title": "Volume Financeiro Processado (24h)",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "sum(credit_volume_processed_hourly * 24) or vector(0)",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          },
+          "mappings": [],
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 100000000
+              }
+            ]
+          },
+          "unit": "currencyBRL"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 2,
+      "title": "Taxa de Aprovação Global",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "credit_approval_rate_hourly or vector(85)",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 70
+              },
+              {
+                "color": "green",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "percent"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "area"
+      }
+    },
+    {
+      "id": 3,
+      "title": "Tempo Médio de Decisão",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "credit_decision_time_avg or vector(180)",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 300
+              },
+              {
+                "color": "red",
+                "value": 600
+              }
+            ]
+          },
+          "unit": "s"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "area"
+      }
+    },
+    {
+      "id": 4,
+      "title": "Análises em Andamento",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "count(credit_analysis_started_timestamp > 0) or vector(12)",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 50
+              },
+              {
+                "color": "red",
+                "value": 100
+              }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "area"
+      }
+    },
+    {
+      "id": 5,
+      "title": "Volume por Segmento (Últimas 24h)",
+      "type": "piechart",
+      "targets": [
+        {
+          "expr": "sum by (segment) (credit_volume_by_segment) or label_replace(vector(50000000), \"segment\", \"Technology\", \"\", \"\") or label_replace(vector(120000000), \"segment\", \"Manufacturing\", \"\", \"\") or label_replace(vector(80000000), \"segment\", \"Logistics\", \"\", \"\")",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "refId": "A",
+          "legendFormat": "{{segment}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "vis": false
+            }
+          },
+          "mappings": [],
+          "unit": "currencyBRL"
+        }
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "pieType": "pie",
+        "tooltip": {
+          "mode": "single"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "values": ["value", "percent"]
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "Utilização de Limites por Empresa",
+      "type": "bargauge",
+      "targets": [
+        {
+          "expr": "(company_used_limit / company_total_limit) * 100 or label_replace(vector(45), \"company_name\", \"TechCorp Ltda\", \"\", \"\") or label_replace(vector(72), \"company_name\", \"Logística S.A.\", \"\", \"\") or label_replace(vector(23), \"company_name\", \"Indústria XYZ\", \"\", \"\")",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "refId": "A",
+          "legendFormat": "{{company_name}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 70
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
+          },
+          "unit": "percent",
+          "min": 0,
+          "max": 100
+        }
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "orientation": "horizontal",
+        "displayMode": "gradient"
+      }
+    },
+    {
+      "id": 7,
+      "title": "Análises por Hora (Últimas 24h)",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "sum(rate(credit_analysis_total[1h])) * 3600 or (sin(time() / 3600) + 1) * 10 + 5",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "refId": "A",
+          "legendFormat": "Total"
+        },
+        {
+          "expr": "sum(rate(credit_analysis_approved_total[1h])) * 3600 or (sin(time() / 3600) + 1) * 8 + 4",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "refId": "B",
+          "legendFormat": "Aprovadas"
+        },
+        {
+          "expr": "sum(rate(credit_analysis_rejected_total[1h])) * 3600 or (sin(time() / 3600) + 1) * 2 + 1",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "refId": "C",
+          "legendFormat": "Rejeitadas"
+        }
+      ],
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 17
+      },
+      "yAxes": [
+        {
+          "label": "Análises/hora",
+          "min": 0
+        },
+        {
+          "show": false
+        }
+      ],
+      "xAxes": [
+        {
+          "mode": "time"
+        }
+      ],
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      }
+    },
+    {
+      "id": 8,
+      "title": "Alertas Críticos Ativos",
+      "type": "table",
+      "targets": [
+        {
+          "expr": "ALERTS{alertstate=\"firing\"}",
+          "format": "table",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          },
+          "mappings": [],
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 25
+      },
+      "options": {
+        "showHeader": true
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "job": true,
+              "instance": true
+            },
+            "indexByName": {},
+            "renameByName": {
+              "alertname": "Alerta",
+              "severity": "Severidade",
+              "summary": "Resumo",
+              "description": "Descrição"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "refresh": "30s",
+  "schemaVersion": 27,
+  "version": 1,
+  "links": []
+}

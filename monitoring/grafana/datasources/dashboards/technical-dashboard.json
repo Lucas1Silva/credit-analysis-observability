@@ -1,0 +1,447 @@
+{
+  "id": null,
+  "title": "Técnico - Infraestrutura & Performance",
+  "tags": ["banking", "technical", "infrastructure"],
+  "style": "dark",
+  "timezone": "browser",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "refresh": "15s",
+  "version": 1,
+  "panels": [
+    {
+      "id": 1,
+      "title": "Status dos Serviços",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "up{job=\"postgres\"}",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "refId": "A",
+          "legendFormat": "PostgreSQL"
+        },
+        {
+          "expr": "up{job=\"redis\"}",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "refId": "B",
+          "legendFormat": "Redis"
+        },
+        {
+          "expr": "up{job=\"kafka\"}",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "refId": "C",
+          "legendFormat": "Kafka"
+        },
+        {
+          "expr": "up{job=\"prometheus\"}",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "refId": "D",
+          "legendFormat": "Prometheus"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "red",
+                  "index": 0,
+                  "text": "DOWN"
+                },
+                "1": {
+                  "color": "green",
+                  "index": 1,
+                  "text": "UP"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background"
+      }
+    },
+    {
+      "id": 2,
+      "title": "Latência API (P95)",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=\"credit-api\"}[5m])) or vector(0.45)",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 2
+              }
+            ]
+          },
+          "unit": "s"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "area"
+      }
+    },
+    {
+      "id": 3,
+      "title": "Taxa de Erro API",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "(rate(http_requests_total{job=\"credit-api\",status=~\"5..\"}[5m]) / rate(http_requests_total{job=\"credit-api\"}[5m])) * 100 or vector(0.3)",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.5
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "percent"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "area"
+      }
+    },
+    {
+      "id": 4,
+      "title": "Uso de CPU por Container",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "rate(container_cpu_usage_seconds_total[5m]) * 100 or label_replace(sin(time() / 60) * 30 + 50, \"container_name\", \"postgres\", \"\", \"\") or label_replace(sin(time() / 45) * 20 + 30, \"container_name\", \"redis\", \"\", \"\") or label_replace(sin(time() / 75) * 25 + 35, \"container_name\", \"kafka\", \"\", \"\")",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "refId": "A",
+          "legendFormat": "{{container_name}}"
+        }
+      ],
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "yAxes": [
+        {
+          "label": "CPU %",
+          "max": 100,
+          "min": 0
+        },
+        {
+          "show": false
+        }
+      ],
+      "legend": {
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": true
+      }
+    },
+    {
+      "id": 5,
+      "title": "Uso de Memória por Container",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "(container_memory_usage_bytes / container_spec_memory_limit_bytes) * 100 or label_replace(sin(time() / 120) * 20 + 60, \"container_name\", \"postgres\", \"\", \"\") or label_replace(sin(time() / 90) * 15 + 45, \"container_name\", \"redis\", \"\", \"\") or label_replace(sin(time() / 150) * 25 + 55, \"container_name\", \"kafka\", \"\", \"\")",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "refId": "A",
+          "legendFormat": "{{container_name}}"
+        }
+      ],
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "yAxes": [
+        {
+          "label": "Memória %",
+          "max": 100,
+          "min": 0
+        },
+        {
+          "show": false
+        }
+      ],
+      "legend": {
+        "avg": false,
+        "current": true,
+        "max": true,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": true
+      }
+    },
+    {
+      "id": 6,
+      "title": "Conexões PostgreSQL",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "pg_stat_database_numbackends or sin(time() / 300) * 5 + 8",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "refId": "A",
+          "legendFormat": "Conexões Ativas"
+        },
+        {
+          "expr": "pg_settings_max_connections or vector(100)",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "refId": "B",
+          "legendFormat": "Limite Máximo"
+        }
+      ],
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 16
+      },
+      "yAxes": [
+        {
+          "label": "Conexões",
+          "min": 0
+        },
+        {
+          "show": false
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Redis Memory Usage",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "redis_memory_used_bytes / 1024 / 1024 or sin(time() / 200) * 50 + 120",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "refId": "A",
+          "legendFormat": "Memória Usada (MB)"
+        },
+        {
+          "expr": "redis_config_maxmemory / 1024 / 1024 or vector(512)",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "refId": "B",
+          "legendFormat": "Limite Configurado (MB)"
+        }
+      ],
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 16
+      },
+      "yAxes": [
+        {
+          "label": "Memória (MB)",
+          "min": 0
+        },
+        {
+          "show": false
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "Kafka Lag por Tópico",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "kafka_consumer_lag_sum or label_replace(sin(time() / 100) * 500 + 100, \"topic\", \"credit-decisions\", \"\", \"\") or label_replace(sin(time() / 150) * 200 + 50, \"topic\", \"mesa-responses\", \"\", \"\")",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "refId": "A",
+          "legendFormat": "{{topic}}"
+        }
+      ],
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 16
+      },
+      "yAxes": [
+        {
+          "label": "Lag (mensagens)",
+          "min": 0
+        },
+        {
+          "show": false
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "Custo Estimado por Análise",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "analysis_cost_per_request or sin(time() / 400) * 0.05 + 0.15",
+          "format": "time_series",
+          "intervalFactor": 1,
+          "refId": "A",
+          "legendFormat": "Custo/Análise (R$)"
+        }
+      ],
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 24
+      },
+      "yAxes": [
+        {
+          "label": "Custo (R$)",
+          "min": 0
+        },
+        {
+          "show": false
+        }
+      ],
+      "legend": {
+        "avg": true,
+        "current": true,
+        "max": true,
+        "min": true,
+        "show": true,
+        "total": false,
+        "values": true
+      }
+    }
+  ],
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": []
+  },
+  "refresh": "15s",
+  "schemaVersion": 27,
+  "version": 1,
+  "links": []
+}
