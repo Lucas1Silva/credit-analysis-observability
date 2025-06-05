@@ -1,0 +1,190 @@
+# Docker Compose para as aplicações Python
+# Usar junto com o docker-compose.yml principal
+
+services:
+  # API FastAPI
+  credit-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: credit_api
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://credit_user:credit_pass@postgres:5432/credit_analysis
+      - REDIS_URL=redis://redis:6379/0
+      - BROKER_URL=redis://redis:6379/1
+      - RESULT_BACKEND=redis://redis:6379/2
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - credit_network
+    volumes:
+      - ./apps:/app/apps
+    command: uvicorn apps.api.main:app --host 0.0.0.0 --port 8000 --reload
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Celery Worker para SAGA
+  celery-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: credit_celery_worker
+    environment:
+      - DATABASE_URL=postgresql://credit_user:credit_pass@postgres:5432/credit_analysis
+      - REDIS_URL=redis://redis:6379/0
+      - BROKER_URL=redis://redis:6379/1
+      - RESULT_BACKEND=redis://redis:6379/2
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - credit_network
+    volumes:
+      - ./apps:/app/apps
+    command: celery -A apps.saga.workflows worker --loglevel=info --concurrency=4 --prefetch-multiplier=1
+    healthcheck:
+      test: ["CMD", "celery", "-A", "apps.saga.workflows", "inspect", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Celery Beat (scheduler)
+  celery-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: credit_celery_beat
+    environment:
+      - DATABASE_URL=postgresql://credit_user:credit_pass@postgres:5432/credit_analysis
+      - REDIS_URL=redis://redis:6379/0
+      - BROKER_URL=redis://redis:6379/1
+      - RESULT_BACKEND=redis://redis:6379/2
+    depends_on:
+      - redis
+    networks:
+      - credit_network
+    volumes:
+      - ./apps:/app/apps
+    command: celery -A apps.saga.workflows beat --loglevel=info
+
+  # MESA Simulator
+  mesa-simulator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: credit_mesa_simulator
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - credit_network
+    volumes:
+      - ./apps:/app/apps
+    command: python -m apps.saga.mesa_client
+
+  # Celery Flower (monitoring)
+  celery-flower:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: credit_celery_flower
+    ports:
+      - "5555:5555"
+    environment:
+      - BROKER_URL=redis://redis:6379/1
+      - RESULT_BACKEND=redis://redis:6379/2
+    depends_on:
+      - redis
+    networks:
+      - credit_network
+    command: celery -A apps.saga.workflows flower --port=5555
+
+  # Exporters para Prometheus
+
+  # PostgreSQL Exporter
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: credit_postgres_exporter
+    ports:
+      - "9187:9187"
+    environment:
+      DATA_SOURCE_NAME: "postgresql://credit_user:credit_pass@postgres:5432/credit_analysis?sslmode=disable"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - credit_network
+
+  # Redis Exporter
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: credit_redis_exporter
+    ports:
+      - "9121:9121"
+    environment:
+      REDIS_ADDR: "redis://redis:6379"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - credit_network
+
+  # Kafka Exporter
+  kafka-exporter:
+    image: danielqsj/kafka-exporter:latest
+    container_name: credit_kafka_exporter
+    ports:
+      - "9308:9308"
+    command:
+      - --kafka.server=kafka:29092
+      - --web.listen-address=:9308
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - credit_network
+
+  # Node Exporter (sistema)
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: credit_node_exporter
+    ports:
+      - "9100:9100"
+    command:
+      - '--path.rootfs=/host'
+    volumes:
+      - '/:/host:ro,rslave'
+    networks:
+      - credit_network
+
+networks:
+  credit_network:
+    external: true
+
+volumes:
+  postgres_data:
+    external: true
+  redis_data:
+    external: true
+  prometheus_data:
+    external: true
+  grafana_data:
+    external: true
