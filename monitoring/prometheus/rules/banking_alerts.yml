@@ -1,0 +1,164 @@
+# Alertas Críticos - Sistema Bancário de Crédito
+groups:
+  - name: banking_critical
+    interval: 30s
+    rules:
+      # ALERTA: Análise travada > 5 minutos
+      - alert: CreditAnalysisStuck
+        expr: |
+          (
+            time() - credit_analysis_started_timestamp
+          ) > 300
+        for: 1m
+        labels:
+          severity: critical
+          team: credit-risk
+          impact: business
+        annotations:
+          summary: "Análise de crédito travada há {{ $value }}s"
+          description: "Análise ID {{ $labels.analysis_id }} da empresa {{ $labels.company_name }} está travada há mais de 5 minutos"
+          runbook: "https://docs.bank.com/runbooks/credit-analysis-stuck"
+
+      # ALERTA: Taxa de erro > 1%
+      - alert: CreditAnalysisErrorRateHigh
+        expr: |
+          (
+            rate(credit_analysis_errors_total[5m]) / 
+            rate(credit_analysis_total[5m])
+          ) * 100 > 1
+        for: 2m
+        labels:
+          severity: critical
+          team: credit-risk
+          impact: business
+        annotations:
+          summary: "Taxa de erro em análises: {{ $value | humanizePercentage }}"
+          description: "Taxa de erro nas análises de crédito está acima de 1% nos últimos 5 minutos"
+
+      # ALERTA: Custo AWS anormal (simulação)
+      - alert: AnalysisCostAnomaly
+        expr: |
+          analysis_cost_per_request > (
+            avg_over_time(analysis_cost_per_request[1h]) * 2
+          )
+        for: 5m
+        labels:
+          severity: warning
+          team: finops
+          impact: cost
+        annotations:
+          summary: "Custo por análise 2x maior que a média"
+          description: "Custo atual: R$ {{ $value | humanize }} vs Média: R$ {{ $labels.average_cost | humanize }}"
+
+      # ALERTA: Tentativa de fraude detectada
+      - alert: FraudAttemptDetected
+        expr: fraud_score > 800
+        for: 0s
+        labels:
+          severity: critical
+          team: security
+          impact: security
+        annotations:
+          summary: "Tentativa de fraude detectada"
+          description: "Score de fraude {{ $value }} para empresa {{ $labels.company_cnpj }}"
+
+      # ALERTA: Limite de crédito quase esgotado
+      - alert: CreditLimitNearExhaustion
+        expr: |
+          (company_used_limit / company_total_limit) * 100 > 90
+        for: 1m
+        labels:
+          severity: warning
+          team: credit-risk
+          impact: business
+        annotations:
+          summary: "Limite de crédito quase esgotado"
+          description: "Empresa {{ $labels.company_name }} utilizou {{ $value }}% do limite"
+
+  - name: infrastructure_critical
+    interval: 15s
+    rules:
+      # ALERTA: PostgreSQL down
+      - alert: PostgreSQLDown
+        expr: up{job="postgres"} == 0
+        for: 30s
+        labels:
+          severity: critical
+          team: infrastructure
+          impact: system
+        annotations:
+          summary: "PostgreSQL está inativo"
+          description: "Banco de dados principal não está respondendo"
+
+      # ALERTA: Redis down
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 30s
+        labels:
+          severity: critical
+          team: infrastructure
+          impact: system
+        annotations:
+          summary: "Redis está inativo"
+          description: "Cache Redis não está respondendo - SAGA pode falhar"
+
+      # ALERTA: Kafka down
+      - alert: KafkaDown
+        expr: up{job="kafka"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: infrastructure
+          impact: system
+        annotations:
+          summary: "Kafka está inativo"
+          description: "Comunicação com MESA será impactada"
+
+      # ALERTA: API response time alto
+      - alert: APIResponseTimeHigh
+        expr: |
+          histogram_quantile(0.95, 
+            rate(http_request_duration_seconds_bucket{job="credit-api"}[5m])
+          ) > 2
+        for: 3m
+        labels:
+          severity: warning
+          team: backend
+          impact: performance
+        annotations:
+          summary: "API com tempo de resposta alto"
+          description: "95% das requisições levam mais de 2s para responder"
+
+      # ALERTA: Memória alta nos containers
+      - alert: ContainerMemoryHigh
+        expr: |
+          (container_memory_usage_bytes / container_spec_memory_limit_bytes) * 100 > 90
+        for: 2m
+        labels:
+          severity: warning
+          team: infrastructure
+          impact: performance
+        annotations:
+          summary: "Container {{ $labels.container_name }} com memória alta"
+          description: "Uso de memória: {{ $value }}%"
+
+  - name: business_metrics
+    interval: 60s
+    rules:
+      # MÉTRICA: Taxa de aprovação por hora
+      - record: credit_approval_rate_hourly
+        expr: |
+          (
+            rate(credit_analysis_approved_total[1h]) /
+            rate(credit_analysis_total[1h])
+          ) * 100
+
+      # MÉTRICA: Tempo médio de decisão
+      - record: credit_decision_time_avg
+        expr: |
+          avg(credit_analysis_duration_seconds)
+
+      # MÉTRICA: Volume financeiro processado por hora
+      - record: credit_volume_processed_hourly
+        expr: |
+          sum(rate(credit_amount_processed_total[1h]))

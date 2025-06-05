@@ -1,0 +1,38 @@
+# Configuração do DataSource Prometheus no Grafana
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
+    jsonData:
+      timeInterval: "5s"
+      queryTimeout: "60s"
+      httpMethod: "POST"
+      customQueryParameters: ""
+      manageAlerts: true
+      alertmanagerUid: ""
+    secureJsonData: {}
+    uid: prometheus-credit-system
+    version: 1
+
+  - name: PostgreSQL
+    type: postgres
+    access: proxy
+    url: postgres:5432
+    database: credit_analysis
+    user: credit_user
+    secureJsonData:
+      password: credit_pass
+    jsonData:
+      sslmode: "disable"
+      maxOpenConns: 10
+      maxIdleConns: 2
+      connMaxLifetime: 14400
+      postgresVersion: 1500
+      timescaledb: false
+    uid: postgres-credit-system
+    version: 1

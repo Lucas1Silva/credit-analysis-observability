@@ -1,0 +1,79 @@
+# Configuração Prometheus - Sistema de Crédito Corporativo
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'credit-analysis-monitor'
+    environment: 'local-dev'
+
+# Regras de alerta
+rule_files:
+  - "rules/banking_alerts.yml"
+  - "rules/business_metrics.yml"
+
+# Targets de coleta
+scrape_configs:
+  # Auto-monitoramento do Prometheus
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    metrics_path: /metrics
+    scrape_interval: 5s
+
+  # PostgreSQL Exporter (será criado depois)
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # Redis Exporter (será criado depois)  
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    scrape_interval: 10s
+
+  # Kafka Exporter (será criado depois)
+  - job_name: 'kafka'
+    static_configs:
+      - targets: ['kafka-exporter:9308']
+    scrape_interval: 15s
+
+  # FastAPI Application (será criado depois)
+  - job_name: 'credit-api'
+    static_configs:
+      - targets: ['credit-api:8000']
+    metrics_path: /metrics
+    scrape_interval: 5s
+    scrape_timeout: 3s
+
+  # Celery Workers (SAGA Manager)
+  - job_name: 'celery-workers'
+    static_configs:
+      - targets: ['celery-exporter:9540']
+    scrape_interval: 10s
+
+  # Node Exporter (sistema operacional)
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 15s
+
+# Configurações de armazenamento
+storage:
+  tsdb:
+    retention.time: 90d
+    retention.size: 10GB
+    wal-compression: true
+
+# Configurações de performance para ambiente bancário
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # Alertmanager será configurado depois se necessário
+          # - alertmanager:9093
+
+# Configurações de logging
+log_level: info
+log_format: json
